@@ -82,3 +82,14 @@ Developed collaboratively by **Sedhu Madhavan** and **Santina V**.
 ## Project Status
 
 Core features implemented and tested locally. Further improvements and enhancements are ongoing.
+
+## Screenshots
+
+### AI Chat
+![NEXUS AI Chat](screenshots/ai-chat.png)
+
+### Document Analyzer
+![Document Analyzer](screenshots/document-analyzer.png)
+
+### Desktop Automation
+![Desktop Automation](screenshots/automation.png)
