@@ -82,3 +82,15 @@ Developed collaboratively by **Sedhu Madhavan** and **Santina V**.
 ## Project Status
 
 Core features implemented and tested locally. Further improvements and enhancements are ongoing.
+
+
+## Screenshots
+
+### AI Chat
+![AI Chat](screenshots/ai%20chat.png)
+
+### Document Analyzer
+![Document Analyzer](screenshots/document%20analyzer.png)
+
+### Automation
+![Automation](screenshots/automation.png)
