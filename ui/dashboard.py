@@ -1,16 +1,19 @@
+
 import customtkinter as ctk
 import threading
 import psutil
+from tkinter import filedialog
+
 from core.ai import ChatEngine
 from core.automation import AutomationEngine
 from core.documents import DocumentAnalyzer
-from tkinter import filedialog
 
-# Theme setup
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
+
 class NexusAIDashboard:
+
     def __init__(self):
         self.ai = ChatEngine()
         self.auto = AutomationEngine()
@@ -24,16 +27,19 @@ class NexusAIDashboard:
         self.build_ui()
 
     def build_ui(self):
-        # Title bar
+
         title = ctk.CTkLabel(
             self.window,
             text="⬡  NEXUS AI — OFFLINE ASSISTANT",
-            font=ctk.CTkFont(family="Consolas", size=24, weight="bold"),
+            font=ctk.CTkFont(
+                family="Consolas",
+                size=24,
+                weight="bold"
+            ),
             text_color="#00f7ff"
         )
         title.pack(pady=10)
 
-        # System stats bar
         self.stats_label = ctk.CTkLabel(
             self.window,
             text="CPU: 0%  |  RAM: 0%  |  STATUS: ONLINE",
@@ -42,9 +48,8 @@ class NexusAIDashboard:
         )
         self.stats_label.pack()
 
-        # Tab view
         self.tabs = ctk.CTkTabview(
-            self.window, 
+            self.window,
             fg_color="#0d1117",
             segmented_button_fg_color="#111827",
             segmented_button_selected_color="#00e5ff",
@@ -62,12 +67,12 @@ class NexusAIDashboard:
         self.build_automation_tab()
         self.build_documents_tab()
 
-        # Start stats updater
         self.update_stats()
 
-    # ── CHAT TAB ──────────────────────────────────────────────────────────────
+    # CHAT TAB
 
     def build_chat_tab(self):
+
         tab = self.tabs.tab("💬  CHAT")
 
         self.chat_display = ctk.CTkTextbox(
@@ -81,10 +86,17 @@ class NexusAIDashboard:
             wrap="word"
         )
         self.chat_display.pack(fill="both", expand=True, pady=(0, 10))
-        self.chat_display.insert("end", "NEXUS AI ready. Type your message below.\n\n")
+
+        self.chat_display.insert(
+            "end",
+            "NEXUS AI ready. Type your message below.\n\n"
+        )
         self.chat_display.configure(state="disabled")
 
-        input_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        input_frame = ctk.CTkFrame(
+            tab,
+            fg_color="transparent"
+        )
         input_frame.pack(fill="x")
 
         self.chat_input = ctk.CTkEntry(
@@ -96,12 +108,20 @@ class NexusAIDashboard:
             border_width=2,
             text_color="#00f7ff",
             corner_radius=12,
-            height=42,
+            height=42
         )
-        self.chat_input.pack(side="left", fill="x", expand=True, padx=(0, 10))
-        self.chat_input.bind("<Return>", lambda e: self.send_message())
+        self.chat_input.pack(
+            side="left",
+            fill="x",
+            expand=True,
+            padx=(0, 10)
+        )
+        self.chat_input.bind(
+            "<Return>",
+            lambda event: self.send_message()
+        )
 
-        send_btn = ctk.CTkButton(
+        self.send_btn = ctk.CTkButton(
             input_frame,
             text="SEND ▶",
             command=self.send_message,
@@ -114,61 +134,93 @@ class NexusAIDashboard:
                 family="Consolas",
                 size=13,
                 weight="bold"
-            ),
+            )
         )
-        send_btn.pack(side="right")
+        self.send_btn.pack(side="right")
 
     def send_message(self):
+
         message = self.chat_input.get().strip()
+
         if not message:
             return
 
         self.chat_input.delete(0, "end")
         self.append_chat(f"YOU › {message}\n")
+        self.append_chat("NEXUS › thinking...\n")
+
+        self.send_btn.configure(state="disabled")
 
         def get_response():
-            self.append_chat("NEXUS › thinking...\n")
-            reply = self.ai.chat(message)
-            self.chat_display.configure(state="normal")
-            content = self.chat_display.get("1.0", "end")
-            content = content.replace("NEXUS › thinking...\n", "")
-            self.chat_display.delete("1.0", "end")
-            self.chat_display.insert("end", content)
-            self.chat_display.configure(state="disabled")
-            self.append_chat(f"NEXUS › {reply}\n\n")
 
-        threading.Thread(target=get_response, daemon=True).start()
+            try:
+                reply = self.ai.chat(message)
+            except Exception as error:
+                reply = f"Error: {error}"
+
+            self.window.after(
+                0,
+                lambda: self.finish_chat(reply)
+            )
+
+        threading.Thread(
+            target=get_response,
+            daemon=True
+        ).start()
+
+    def finish_chat(self, reply):
+
+        content = self.chat_display.get("1.0", "end")
+        content = content.replace(
+            "NEXUS › thinking...\n",
+            "",
+            1
+        )
+
+        self.chat_display.configure(state="normal")
+        self.chat_display.delete("1.0", "end")
+        self.chat_display.insert("end", content)
+        self.chat_display.insert(
+            "end",
+            f"NEXUS › {reply}\n\n"
+        )
+        self.chat_display.see("end")
+        self.chat_display.configure(state="disabled")
+
+        self.send_btn.configure(state="normal")
 
     def append_chat(self, text):
+
         self.chat_display.configure(state="normal")
         self.chat_display.insert("end", text)
         self.chat_display.see("end")
         self.chat_display.configure(state="disabled")
 
-    # ── AUTOMATION TAB ────────────────────────────────────────────────────────
+    # AUTOMATION TAB
 
     def build_automation_tab(self):
+
         tab = self.tabs.tab("🖥  AUTOMATE")
 
-        label = ctk.CTkLabel(
+        ctk.CTkLabel(
             tab,
             text="Click a button to control your desktop",
             font=ctk.CTkFont(family="Courier", size=12),
             text_color="#4a8a99"
-        )
-        label.pack(pady=10)
+        ).pack(pady=10)
 
         buttons = [
             ("📸  Take Screenshot", "screenshot"),
             ("🌐  Open Browser", "open browser"),
-            ("📋  Read Clipboard", "clipboard"),
+            ("📋  Read Clipboard", "clipboard")
         ]
 
-        for btn_text, cmd in buttons:
+        for btn_text, command in buttons:
+
             ctk.CTkButton(
                 tab,
                 text=btn_text,
-                command=lambda c=cmd: self.run_automation(c),
+                command=lambda c=command: self.run_automation(c),
                 fg_color="#081520",
                 hover_color="#0ea5e9",
                 border_width=1,
@@ -180,7 +232,7 @@ class NexusAIDashboard:
                     family="Consolas",
                     size=14,
                     weight="bold"
-                ),
+                )
             ).pack(fill="x", padx=40, pady=8)
 
         self.auto_log = ctk.CTkTextbox(
@@ -192,16 +244,44 @@ class NexusAIDashboard:
         )
         self.auto_log.pack(fill="x", padx=0, pady=10)
         self.auto_log.insert("end", "Automation log ready...\n")
+        self.auto_log.configure(state="disabled")
 
     def run_automation(self, command):
-        result = self.auto.execute_command(command)
-        self.auto_log.configure(state="normal")
-        self.auto_log.insert("end", f"✓ {result}\n")
-        self.auto_log.see("end")
 
-    # ── DOCUMENTS TAB ─────────────────────────────────────────────────────────
+        def execute():
+
+            try:
+                if command == "clipboard":
+                    result = self.window.clipboard_get()
+                else:
+                    result = self.auto.execute_command(command)
+
+                message = str(result)
+
+            except Exception as error:
+                message = f"Automation failed: {error}"
+
+            self.window.after(
+                0,
+                lambda: self.update_auto_log(message)
+            )
+
+        threading.Thread(
+            target=execute,
+            daemon=True
+        ).start()
+
+    def update_auto_log(self, message):
+
+        self.auto_log.configure(state="normal")
+        self.auto_log.insert("end", f"✓ {message}\n")
+        self.auto_log.see("end")
+        self.auto_log.configure(state="disabled")
+
+    # DOCUMENTS TAB
 
     def build_documents_tab(self):
+
         tab = self.tabs.tab("📄  DOCUMENTS")
 
         ctk.CTkLabel(
@@ -211,15 +291,20 @@ class NexusAIDashboard:
             text_color="#4a8a99"
         ).pack(pady=10)
 
-        ctk.CTkButton(
+        self.upload_btn = ctk.CTkButton(
             tab,
             text="⬆  UPLOAD FILE",
             command=self.upload_document,
             fg_color="#00e5ff",
             text_color="#020a0f",
-            font=ctk.CTkFont(family="Courier", size=13, weight="bold"),
+            font=ctk.CTkFont(
+                family="Courier",
+                size=13,
+                weight="bold"
+            ),
             height=45
-        ).pack(pady=10)
+        )
+        self.upload_btn.pack(pady=10)
 
         self.doc_display = ctk.CTkTextbox(
             tab,
@@ -235,34 +320,71 @@ class NexusAIDashboard:
             wrap="word"
         )
         self.doc_display.pack(fill="both", expand=True)
-        self.doc_display.insert("end", "Document summary will appear here...\n")
+        self.doc_display.insert(
+            "end",
+            "Document summary will appear here...\n"
+        )
 
     def upload_document(self):
+
         file_path = filedialog.askopenfilename(
-            filetypes=[("PDF files", "*.pdf"), ("Text files", "*.txt")]
+            filetypes=[
+                ("PDF files", "*.pdf"),
+                ("Text files", "*.txt")
+            ]
         )
+
         if not file_path:
             return
 
         self.doc_display.delete("1.0", "end")
-        self.doc_display.insert("end", "Analyzing document...\n")
+        self.doc_display.insert(
+            "end",
+            "Analyzing document... Please wait.\n"
+        )
+
+        self.upload_btn.configure(state="disabled")
 
         def analyze():
-            result = self.doc_analyzer.analyze(file_path)
-            self.doc_display.delete("1.0", "end")
-            self.doc_display.insert("end", result)
 
-        threading.Thread(target=analyze, daemon=True).start()
+            try:
+                result = self.doc_analyzer.analyze(file_path)
+            except Exception as error:
+                result = f"Document analysis failed: {error}"
 
-    # ── SYSTEM STATS ──────────────────────────────────────────────────────────
+            self.window.after(
+                0,
+                lambda: self.finish_document(result)
+            )
+
+        threading.Thread(
+            target=analyze,
+            daemon=True
+        ).start()
+
+    def finish_document(self, result):
+
+        self.doc_display.delete("1.0", "end")
+        self.doc_display.insert("end", result)
+
+        self.upload_btn.configure(state="normal")
+
+    # SYSTEM STATS
 
     def update_stats(self):
+
         cpu = psutil.cpu_percent()
         ram = psutil.virtual_memory().percent
+
         self.stats_label.configure(
-            text=f"CPU: {cpu}%  |  RAM: {ram}%  |  MODEL: phi3:mini  |  STATUS: ONLINE"
+            text=(
+                f"CPU: {cpu}%  |  RAM: {ram}%  |  "
+                "MODEL: phi3:mini  |  STATUS: ONLINE"
+            )
         )
+
         self.window.after(2000, self.update_stats)
 
     def run(self):
+
         self.window.mainloop()
